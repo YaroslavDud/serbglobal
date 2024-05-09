@@ -1,95 +1,124 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+
+import {useDispatch, useSelector} from "react-redux";
+import {useEffect} from "react";
+import {createProduct, deleteProduct, fetchProducts, updateProduct} from "@/app/reducers";
+import {
+    createColumnHelper,
+    flexRender,
+    getCoreRowModel,
+    useReactTable,
+} from '@tanstack/react-table'
 
 export default function Home() {
+    const dispatch = useDispatch();
+    const products = useSelector((state) => state.products.products);
+    const loading = useSelector((state) => state.products.loading);
+
+    useEffect(() => {
+        dispatch(fetchProducts());
+    }, [dispatch]);
+
+    const handleDelete = (productId) => {
+        dispatch(deleteProduct(productId));
+    };
+
+    const handleUpdate = (productId) => {
+        dispatch(updateProduct({productId, title:'Updated title'}));
+    };
+
+    const handleCreate = () => {
+        dispatch(createProduct({
+            title: 'Test title',
+            brand: 'Test brand',
+            category: 'Test category',
+            description: 'Test description',
+            price: 0,
+        }));
+    };
+
+    const columnHelper = createColumnHelper()
+
+    const columns = [
+        columnHelper.accessor('title', {
+            header: () => 'Title',
+            cell: info => info.getValue(),
+            footer: info => info.column.id,
+        }),
+        columnHelper.accessor('brand', {
+            header: () => 'Brand',
+            cell: info => info.getValue(),
+            footer: info => info.column.id,
+        }),
+        columnHelper.accessor('category', {
+            header: () => 'Category',
+            cell: info => info.getValue(),
+            footer: info => info.column.id,
+        }),
+        columnHelper.accessor('description', {
+            header: () => 'Description',
+            cell: info => info.renderValue(),
+            footer: info => info.column.id,
+        }),
+        columnHelper.accessor('price', {
+            header: () => 'Price',
+            cell: info => info.renderValue(),
+            footer: info => info.column.id,
+        }),
+        columnHelper.accessor('actions', {
+            header: () => 'Actions',
+            cell: info => (
+                <>
+                    <button onClick={() => handleDelete(info.row.original.id)}>Delete</button>
+                    <button onClick={() => handleUpdate(info.row.original.id)}>Update</button>
+                </>
+            ),
+            footer: info => info.column.id,
+        }),
+    ]
+
+    const table = useReactTable({
+        data: products,
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+    })
+
+    if (loading || products.length === 0) return <p>Loading...</p>;
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    <>
+        <button onClick={handleCreate}>Create the product</button>
+        <table>
+            <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                        <th key={header.id}>
+                            {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                )}
+                        </th>
+                    ))}
+                </tr>
+            ))}
+            </thead>
+            <tbody>
+            {table.getRowModel().rows && table.getRowModel().rows.map(row => (
+                <tr key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                        <td key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                    ))}
+                </tr>
+            ))}
+            </tbody>
+            <tfoot>
+            </tfoot>
+        </table>
+    </>
   );
 }
